@@ -26,6 +26,7 @@ def load_api_key():
             api_key = st.secrets["GENAI_API_KEY"]
         except KeyError:
             api_key = st.text_input("Enter Gemini API Key")
+            st.secrets["GENAI_API_KEY"] = api_key
             if not api_key:
                 st.error("Please set the GENAI_API_KEY environment variable.")
                 st.stop()
