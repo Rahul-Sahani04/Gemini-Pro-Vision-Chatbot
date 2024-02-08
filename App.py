@@ -13,11 +13,13 @@ import os
 
 load_dotenv()
 
+
 @dataclass
 class Message:
     actor: str
     payload: str
     image: bool = False
+
 
 def load_api_key():
     api_key = os.getenv("GENAI_API_KEY")
@@ -25,15 +27,16 @@ def load_api_key():
         try:
             api_key = st.secrets["GENAI_API_KEY"]
         except KeyError:
-            api_key = st.text_input("Enter Gemini API Key")
-            st.secrets["GENAI_API_KEY"] = api_key
+            api_key = st.text_input("Enter Gemini API Key", help="Get one from here https://ai.google.dev/")
             if not api_key:
-                st.error("Please set the GENAI_API_KEY environment variable.")
+                st.error("Please set the GENAI_API_KEY environment variable")
                 st.stop()
     return api_key
 
+
 api_key = load_api_key()
 genai.configure(api_key=api_key)
+
 
 def process_uploaded_image(img_file_buffer):
     img_pil = Image.open(img_file_buffer)
@@ -46,6 +49,7 @@ def process_uploaded_image(img_file_buffer):
 
     # Set up image parts for the model
     return [{"mime_type": "image/jpeg", "data": encoded_img}], encoded_img
+
 
 USER = "user"
 ASSISTANT = "ai"
@@ -90,15 +94,17 @@ vision_model = genai.GenerativeModel(
 container = st.container(border=True)
 
 if MESSAGES not in st.session_state:
-    st.session_state[MESSAGES] = [Message(actor=ASSISTANT, payload="Hi! How can I help you?")]
+    st.session_state[MESSAGES] = [
+        Message(actor=ASSISTANT, payload="Hi! How can I help you?")
+    ]
     container.chat_message(ASSISTANT).write("Hi! How can I help you?")
-
 
 
 welcome_text = "Hello! 😊"
 user_input = st.text_input("You:", value=welcome_text, key="placeholder")
 send_button = st.button("Send", key="SendButton")
 img_file_buffer = st.file_uploader("Choose a file", type=["jpg", "jpeg"])
+
 
 def update_msgs():
     for msg in st.session_state[MESSAGES]:
@@ -107,16 +113,25 @@ def update_msgs():
         else:
             container.chat_message(msg.actor).write(msg.payload)
 
+
 if send_button:
     if img_file_buffer is not None:
         image_parts, base64Data = process_uploaded_image(img_file_buffer)
         st.session_state[MESSAGES].append(Message(actor=USER, payload=user_input))
-        st.session_state[MESSAGES].append(Message(actor=USER, payload=f"<img src='data:image/jpeg;base64,{base64Data}' width='200' height='130'/>", image=True))
+        st.session_state[MESSAGES].append(
+            Message(
+                actor=USER,
+                payload=f"<img src='data:image/jpeg;base64,{base64Data}' width='200' height='130'/>",
+                image=True,
+            )
+        )
 
         with st.spinner("Thinking..."):
             prompt_parts = [user_input, image_parts[0]]
             response = vision_model.generate_content(prompt_parts)
-            st.session_state[MESSAGES].append(Message(actor=ASSISTANT, payload=response.text))
+            st.session_state[MESSAGES].append(
+                Message(actor=ASSISTANT, payload=response.text)
+            )
             update_msgs()
             img_file_buffer.flush()
     else:
@@ -125,6 +140,7 @@ if send_button:
             convo_text = text_model.start_chat(history=[])
             convo_text.send_message(user_input)
             response = convo_text.last.text
-            st.session_state[MESSAGES].append(Message(actor=ASSISTANT, payload=response))
+            st.session_state[MESSAGES].append(
+                Message(actor=ASSISTANT, payload=response)
+            )
             update_msgs()
-
